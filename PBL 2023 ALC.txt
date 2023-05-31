@@ -1,0 +1,166 @@
+ #include <LiquidCrystal.h>
+const int rs = 2, en = 3, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+
+
+int buzz = 10;
+int lcdlight = 8;
+int ledred = 12;
+int ledgreen = 11;
+int relay = 9;
+int mq3 = A0;
+int pir = A1;
+int cal = 0;
+int reval;
+int rep;
+int itone = 0;
+
+
+
+void setup() {
+  
+  
+  pinMode(buzz, OUTPUT);
+  pinMode(lcdlight, OUTPUT);
+  pinMode(relay, OUTPUT);
+  pinMode(ledgreen, OUTPUT);
+  pinMode(ledred, OUTPUT);
+  pinMode(mq3, INPUT);
+  pinMode(pir, INPUT);
+  {
+  lcd.begin(16, 2);
+     
+  }
+    
+ 
+  
+  {
+    digitalWrite(relay, HIGH);
+    
+    back:
+        
+    digitalWrite(lcdlight, HIGH);  
+    lcd.setCursor(0,0);
+    lcd.print("Initializing...");
+    lcd.setCursor(0,2);
+    lcd.print("Please wait");  
+    digitalWrite(buzz, HIGH);
+    delay(200);
+    digitalWrite(buzz, LOW);
+    delay(3000);
+    int sval = analogRead(mq3);
+    
+    if(sval > 400){
+      goto back;
+    }
+    
+    reval = sval+5;    
+    digitalWrite(buzz, HIGH);
+    delay(50);
+    digitalWrite(buzz, LOW);
+    delay(1500);
+    digitalWrite(lcdlight, LOW);
+    lcd.clear();
+  }
+}
+
+
+
+void loop() {
+  bailout:  
+  int pirval = digitalRead(pir);  
+  if (pirval == HIGH && cal == 0) {
+    digitalWrite(lcdlight,HIGH);    
+    lcd.setCursor(0, 0);
+    lcd.print("Blow on sensor");
+    
+    if (rep == 25){
+      goto starter;
+    }
+    
+    int mq3val = analogRead(mq3);
+    delay(1500);
+    if (mq3val > 400 ) {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("     ALERT!     ");
+      lcd.setCursor(0, 2);
+      lcd.print("Alcohol deteced");
+      digitalWrite(relay,HIGH);
+      digitalWrite(ledred, HIGH);
+      digitalWrite(buzz, HIGH);
+      delay(500);
+      digitalWrite(buzz, LOW);
+      delay(2000);
+      lcd.clear();
+      lcd.print("Driving not");
+      lcd.setCursor(0, 2);
+      lcd.print("allowed.");       
+      cal=1;
+      itone=1;
+      delay(1000);
+      goto bailout;
+    }
+    
+    if(mq3val>reval && mq3val<400){
+      lcd.clear();
+      digitalWrite(ledgreen, HIGH);
+      lcd.setCursor(0,0);
+      lcd.print("Allowed to drive");
+      lcd.setCursor(0, 2);
+      lcd.print("Ignite the car");
+      digitalWrite(relay, LOW);
+      digitalWrite(buzz, HIGH);
+      delay(100);
+      digitalWrite(buzz, LOW);
+      delay(75);
+      digitalWrite(buzz, HIGH);
+      delay(50);
+      digitalWrite(buzz, LOW);
+      cal=1;
+      goto bailout;
+    }
+    
+      if(mq3val<reval){
+      rep++;
+      goto bailout;
+    }
+    
+  }
+
+  pirval = digitalRead(pir);
+    
+    if(pirval == HIGH && itone == 1){      
+      digitalWrite(buzz, HIGH);
+      delay(500);
+      digitalWrite(buzz, LOW);
+      delay(1000);
+    }
+    
+
+  
+
+  
+  pirval = digitalRead(pir);
+  if(pirval == LOW ){
+    digitalWrite(ledred, LOW);
+    digitalWrite(ledgreen, LOW);
+    digitalWrite(lcdlight, LOW);
+    lcd.clear();
+    digitalWrite(relay, HIGH);
+    cal=0;
+    itone=0;
+  }
+  
+
+  
+  starter:
+  
+  int sval = analogRead(mq3);
+  reval = sval+5;
+  rep=0;
+  delay(50);
+  goto bailout;
+ 
+}
